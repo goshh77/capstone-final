@@ -4,11 +4,13 @@ pipeline {
     environment {
         PROJECT_ID = 'project-2-490904'
         REGION = 'us-central1'
+        ZONE = 'us-central1-c' 
+        MIG_NAME = 'capstone-backend-mig'
         IMAGE = "us-central1-docker.pkg.dev/${PROJECT_ID}/frontend-repo/frontend-app"
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
@@ -16,33 +18,45 @@ pipeline {
 
         stage('Set GCP Project') {
             steps {
-                // Robot logs into the correct project
                 sh "gcloud config set project ${PROJECT_ID}"
             }
         }
 
-        stage('Cloud Build') {
+        stage('Build & Deploy Frontend') {
             steps {
                 dir('frontend') {
-                    // Triggers Google's remote builder
-                    sh "gcloud builds submit --tag ${IMAGE} ."
+                    sh "gcloud builds submit --tag ${IMAGE} . --quiet"
                 }
+                sh "gcloud run deploy capstone-frontend --image ${IMAGE} --platform managed --region ${REGION} --allow-unauthenticated --quiet"
             }
         }
 
-        stage('Deploy to Cloud Run') {
+        stage('Wait Before Backend Restart') {
             steps {
-                sh "gcloud run deploy capstone-frontend --image ${IMAGE} --platform managed --region ${REGION} --allow-unauthenticated"
+                echo "Waiting before backend restart..."
+                sh "sleep 15"
+            }
+        }
+
+        stage('Deploy Backend (MIG Refresh)') {
+            steps {
+                echo "🚀 Starting Rolling Update for Backend..."
+                sh """
+                gcloud compute instance-groups managed rolling-action restart ${MIG_NAME} \
+                --zone=${ZONE} \
+                --max-unavailable=1 \
+                --quiet
+                """
             }
         }
     }
-    
+
     post {
         success {
-            echo "🎉 Pipeline Finished Successfully! Website is updated."
+            echo "🎉 SUCCESS: Full-Stack Deployment (Frontend + Backend) is Complete!"
         }
         failure {
-            echo "❌ Pipeline Failed. Check the Console Output logs."
+            echo "❌ Deployment Failed. Check Console Output."
         }
     }
 }
