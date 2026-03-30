@@ -30,21 +30,20 @@ pipeline {
             }
         }
 
-        stage('Wait Before Backend Restart') {
+        stage('Wait for Sync') {
             steps {
-                echo "Waiting 15 seconds for infrastructure to sync..."
                 sh "sleep 15"
             }
         }
 
         stage('Deploy Backend (MIG Refresh)') {
             steps {
-                echo "🚀 Starting Rolling Update for Regional Backend..."
-                // FIXED: Changed --zone to --region because your MIG is Regional
+                echo "🚀 Starting Zero-Downtime Rolling Update..."
+                // FIXED: Changed --max-unavailable to 0 for Regional MIG compliance
                 sh """
                 gcloud compute instance-groups managed rolling-action restart ${MIG_NAME} \
                 --region=${REGION} \
-                --max-unavailable=1 \
+                --max-unavailable=0 \
                 --quiet
                 """
             }
@@ -53,10 +52,10 @@ pipeline {
 
     post {
         success {
-            echo "🎉 SUCCESS: Full-Stack Deployment (Frontend + Backend) is Complete!"
+            echo "🎉 MISSION COMPLETE: Full-Stack CI/CD is Live and Green!"
         }
         failure {
-            echo "❌ Deployment Failed. Check Console Output."
+            echo "❌ Still an issue. Check the logs."
         }
     }
 }
