@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+// The baseURL is set to '/api' so that the browser automatically uses 
+// your domain (https://harshac.online) and the secure HTTPS protocol.
 const api = axios.create({
-  baseURL: 'http://34.111.226.236/api',
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json'
   }
