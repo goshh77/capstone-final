@@ -4,7 +4,6 @@ pipeline {
     environment {
         PROJECT_ID = 'project-2-490904'
         REGION = 'us-central1'
-        ZONE = 'us-central1-c' 
         MIG_NAME = 'capstone-backend-mig'
         IMAGE = "us-central1-docker.pkg.dev/${PROJECT_ID}/frontend-repo/frontend-app"
     }
@@ -33,17 +32,18 @@ pipeline {
 
         stage('Wait Before Backend Restart') {
             steps {
-                echo "Waiting before backend restart..."
+                echo "Waiting 15 seconds for infrastructure to sync..."
                 sh "sleep 15"
             }
         }
 
         stage('Deploy Backend (MIG Refresh)') {
             steps {
-                echo "🚀 Starting Rolling Update for Backend..."
+                echo "🚀 Starting Rolling Update for Regional Backend..."
+                // FIXED: Changed --zone to --region because your MIG is Regional
                 sh """
                 gcloud compute instance-groups managed rolling-action restart ${MIG_NAME} \
-                --zone=${ZONE} \
+                --region=${REGION} \
                 --max-unavailable=1 \
                 --quiet
                 """
